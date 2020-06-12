@@ -1569,14 +1569,31 @@ return /******/ (function(modules) { // webpackBootstrap
 	  };
 
 	  // abstract key logic for assign and unassign
+	  // function getKeys(key) {
+	  //   var keys;
+	  //   key = key.replace(/\s/g, '');
+	  //   keys = key.split(',');
+	  //   if ((keys[keys.length - 1]) == '') {
+	  //     keys[keys.length - 2] += ',';
+	  //   }
+	  //   return keys;
+	  // }
+
+	  // abstract key logic for assign and unassign
+	  // The old function errored when presented with an undefined `key` arguement
+	  // + As called by `Common.chain`
 	  function getKeys(key) {
-	    var keys;
-	    key = key.replace(/\s/g, '');
-	    keys = key.split(',');
-	    if ((keys[keys.length - 1]) == '') {
-	      keys[keys.length - 2] += ',';
-	    }
-	    return keys;
+	  	if(key != null) {
+
+		    var keys;
+		    key = key.replace(/\s/g, '');
+		    keys = key.split(',');
+		    if ((keys[keys.length - 1]) == '') {
+		      keys[keys.length - 2] += ',';
+		    }
+		    return keys;
+	  	}
+	  	return [];
 	  }
 
 	  // abstract mods logic for assign and unassign
