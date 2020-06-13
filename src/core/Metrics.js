@@ -19,8 +19,12 @@ var Common = require('./Common');
      * @private
      * @return {metrics} A new metrics
      */
-    Metrics.create = function(options) {
-        var defaults = {
+    Metrics.create = (options) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Metrics.create')
+
+        let defaults = {
             extended: false,
             narrowDetections: 0,
             narrowphaseTests: 0,
@@ -46,8 +50,13 @@ var Common = require('./Common');
      * @private
      * @param {metrics} metrics
      */
-    Metrics.reset = function(metrics) {
+    Metrics.reset = (metrics) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Metrics.reset')
+
         if (metrics.extended) {
+            
             metrics.narrowDetections = 0;
             metrics.narrowphaseTests = 0;
             metrics.narrowReuse = 0;
@@ -71,9 +80,14 @@ var Common = require('./Common');
      * @param {metrics} metrics
      * @param {engine} engine
      */
-    Metrics.update = function(metrics, engine) {
+    Metrics.update = (metrics, engine) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Metrics.update')
+
         if (metrics.extended) {
-            var world = engine.world,
+
+            let world = engine.world,
                 bodies = Composite.allBodies(world);
 
             metrics.collisions = metrics.narrowDetections;
@@ -83,6 +97,8 @@ var Common = require('./Common');
             metrics.narrowEff = (metrics.narrowDetections / (metrics.narrowphaseTests || 1)).toFixed(2);
             metrics.broadEff = (1 - (metrics.broadphaseTests / (bodies.length || 1))).toFixed(2);
             metrics.narrowReuse = (metrics.narrowReuseCount / (metrics.narrowphaseTests || 1)).toFixed(2);
+
+            // This was already commented out in the Matter.js code base
             //var broadphase = engine.broadphase[engine.broadphase.current];
             //if (broadphase.instance)
             //    metrics.buckets = Common.keys(broadphase.instance.buckets).length;

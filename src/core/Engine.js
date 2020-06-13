@@ -35,7 +35,8 @@ var Body = require('../body/Body');
      * @param {object} [options]
      * @return {engine} engine
      */
-    Engine.create = function(element, options) {
+    Engine.create = (element, options) => {
+        
         // options may be passed as the first (and only) argument
         options = Common.isElement(element) ? options : element;
         element = Common.isElement(element) ? element : null;
@@ -45,7 +46,7 @@ var Body = require('../body/Body');
             Common.warn('Engine.create: engine.render is deprecated (see docs)');
         }
 
-        var defaults = {
+        let defaults = {
             positionIterations: 6,
             velocityIterations: 4,
             constraintIterations: 2,
@@ -61,25 +62,30 @@ var Body = require('../body/Body');
             }
         };
 
-        var engine = Common.extend(defaults, options);
+        let engine = Common.extend(defaults, options);
 
         // @deprecated
         if (element || engine.render) {
-            var renderDefaults = {
+
+            console.log('deprecated engine.render invoked #1')
+            let renderDefaults = {
                 element: element,
                 controller: Render
             };
-            
             engine.render = Common.extend(renderDefaults, engine.render);
         }
 
         // @deprecated
         if (engine.render && engine.render.controller) {
+
+            console.log('deprecated engine.render invoked #2')
             engine.render = engine.render.controller.create(engine.render);
         }
 
         // @deprecated
         if (engine.render) {
+
+            console.log('deprecated engine.render invoked #3')
             engine.render.engine = engine;
         }
 
@@ -94,6 +100,7 @@ var Body = require('../body/Body');
 
         return engine;
     };
+
 
     /**
      * Moves the simulation forward in time by `delta` ms.
@@ -110,124 +117,139 @@ var Body = require('../body/Body');
      * @param {number} [delta=16.666]
      * @param {number} [correction=1]
      */
-    Engine.update = function(engine, delta, correction) {
-        delta = delta || 1000 / 60;
-        correction = correction || 1;
+    Engine.update = (engine, delta = 16.666666667, correction = 1) => {
 
-        var world = engine.world,
-            timing = engine.timing,
-            broadphase = engine.broadphase,
-            broadphasePairs = [],
+        let {world, timing, broadphase, enableSleeping, constraintIterations, velocityIterations, positionIterations} = engine;
+        let {timeScale} = timing;
+        let {gravity, bounds: worldBounds, isModified: worldIsModified} = world;
+        let {controller} = broadphase;
+
+        let broadphasePairs = [],
             i;
 
         // increment timestamp
-        timing.timestamp += delta * timing.timeScale;
+        timing.timestamp += delta * timeScale;
 
         // create an event object
+        // + commenting out to see if the system works without event emissions
+        // + OUCH! The mouse functionality seems to rely on events
+        // + not an ideal solution as this brings UI (and render engine) functionality right into the heart/soul of the physics engine - coupling cannot get any tighter!
         var event = {
             timestamp: timing.timestamp
         };
-
+        // + Mouse functionality relies on this event
         Events.trigger(engine, 'beforeUpdate', event);
 
         // get lists of all bodies and constraints, no matter what composites they are in
-        var allBodies = Composite.allBodies(world),
+        let allBodies = Composite.allBodies(world),
             allConstraints = Composite.allConstraints(world);
 
         // @if DEBUG
         // reset metrics logging
-        Metrics.reset(engine.metrics);
+        // + commenting out to see if the system works without metrics reset
+        // Metrics.reset(engine.metrics);
         // @endif
 
         // if sleeping enabled, call the sleeping controller
-        if (engine.enableSleeping)
-            Sleeping.update(allBodies, timing.timeScale);
+        if (enableSleeping) Sleeping.update(allBodies, timeScale);
 
         // applies gravity to all bodies
-        Engine._bodiesApplyGravity(allBodies, world.gravity);
+        Engine._bodiesApplyGravity(allBodies, gravity);
 
         // update all body position and rotation by integration
-        Engine._bodiesUpdate(allBodies, delta, timing.timeScale, correction, world.bounds);
+        Engine._bodiesUpdate(allBodies, delta, timeScale, correction, worldBounds);
 
         // update all constraints (first pass)
         Constraint.preSolveAll(allBodies);
-        for (i = 0; i < engine.constraintIterations; i++) {
-            Constraint.solveAll(allConstraints, timing.timeScale);
+
+        for (i = 0; i < constraintIterations; i++) {
+
+            Constraint.solveAll(allConstraints, timeScale);
         }
         Constraint.postSolveAll(allBodies);
 
         // broadphase pass: find potential collision pairs
-        if (broadphase.controller) {
+        if (controller) {
+
             // if world is dirty, we must flush the whole grid
-            if (world.isModified)
-                broadphase.controller.clear(broadphase);
+            if (worldIsModified) controller.clear(broadphase);
 
             // update the grid buckets based on current bodies
-            broadphase.controller.update(broadphase, allBodies, engine, world.isModified);
+            controller.update(broadphase, allBodies, engine, worldIsModified);
             broadphasePairs = broadphase.pairsList;
-        } else {
-            // if no broadphase set, we just pass all bodies
-            broadphasePairs = allBodies;
-        }
+        } 
+        // if no broadphase set, we just pass all bodies
+        else broadphasePairs = allBodies;
 
         // clear all composite modified flags
-        if (world.isModified) {
-            Composite.setModified(world, false, false, true);
-        }
+        if (worldIsModified) Composite.setModified(world, false, false, true);
 
         // narrowphase pass: find actual collisions, then create or update collision pairs
-        var collisions = broadphase.detector(broadphasePairs, engine);
+        let collisions = broadphase.detector(broadphasePairs, engine);
 
         // update collision pairs
-        var pairs = engine.pairs,
+        let pairs = engine.pairs,
             timestamp = timing.timestamp;
+
         Pairs.update(pairs, collisions, timestamp);
         Pairs.removeOld(pairs, timestamp);
 
         // wake up bodies involved in collisions
-        if (engine.enableSleeping)
-            Sleeping.afterCollisions(pairs.list, timing.timeScale);
+        if (enableSleeping) Sleeping.afterCollisions(pairs.list, timeScale);
 
         // trigger collision events
-        if (pairs.collisionStart.length > 0)
-            Events.trigger(engine, 'collisionStart', { pairs: pairs.collisionStart });
+        // + commenting out to see if the system works without event emissions
+        // + Mouse functionality works without this event
+        // if (pairs.collisionStart.length > 0)
+        //     Events.trigger(engine, 'collisionStart', { pairs: pairs.collisionStart });
 
         // iteratively resolve position between collisions
         Resolver.preSolvePosition(pairs.list);
-        for (i = 0; i < engine.positionIterations; i++) {
-            Resolver.solvePosition(pairs.list, timing.timeScale);
+
+        for (i = 0; i < positionIterations; i++) {
+
+            Resolver.solvePosition(pairs.list, timeScale);
         }
         Resolver.postSolvePosition(allBodies);
 
         // update all constraints (second pass)
         Constraint.preSolveAll(allBodies);
-        for (i = 0; i < engine.constraintIterations; i++) {
-            Constraint.solveAll(allConstraints, timing.timeScale);
+
+        for (i = 0; i < constraintIterations; i++) {
+
+            Constraint.solveAll(allConstraints, timeScale);
         }
         Constraint.postSolveAll(allBodies);
 
         // iteratively resolve velocity between collisions
         Resolver.preSolveVelocity(pairs.list);
-        for (i = 0; i < engine.velocityIterations; i++) {
-            Resolver.solveVelocity(pairs.list, timing.timeScale);
+
+        for (i = 0; i < velocityIterations; i++) {
+
+            Resolver.solveVelocity(pairs.list, timeScale);
         }
 
         // trigger collision events
-        if (pairs.collisionActive.length > 0)
-            Events.trigger(engine, 'collisionActive', { pairs: pairs.collisionActive });
+        // + commenting out to see if the system works without event emissions
+        // + Mouse functionality works without these events
+        // if (pairs.collisionActive.length > 0)
+        //     Events.trigger(engine, 'collisionActive', { pairs: pairs.collisionActive });
 
-        if (pairs.collisionEnd.length > 0)
-            Events.trigger(engine, 'collisionEnd', { pairs: pairs.collisionEnd });
+        // if (pairs.collisionEnd.length > 0)
+        //     Events.trigger(engine, 'collisionEnd', { pairs: pairs.collisionEnd });
 
         // @if DEBUG
         // update metrics log
-        Metrics.update(engine.metrics, engine);
+        // + commenting out to see if the system works without metrics reset
+        // Metrics.update(engine.metrics, engine);
         // @endif
 
         // clear force buffers
         Engine._bodiesClearForces(allBodies);
 
-        Events.trigger(engine, 'afterUpdate', event);
+        // + commenting out to see if the system works without event emissions
+        // + Mouse functionality works without this event
+        // Events.trigger(engine, 'afterUpdate', event);
 
         return engine;
     };
@@ -238,21 +260,26 @@ var Body = require('../body/Body');
      * @param {engine} engineA
      * @param {engine} engineB
      */
-    Engine.merge = function(engineA, engineB) {
+    Engine.merge = (engineA, engineB) => {
+
+        // check to see if this function is ever used ...
+        console.log('Engine.merge')
+
         Common.extend(engineA, engineB);
         
         if (engineB.world) {
+
             engineA.world = engineB.world;
 
             Engine.clear(engineA);
 
-            var bodies = Composite.allBodies(engineA.world);
+            let bodies = Composite.allBodies(engineA.world);
 
-            for (var i = 0; i < bodies.length; i++) {
-                var body = bodies[i];
+            bodies.forEach(body => {
+
                 Sleeping.set(body, false);
                 body.id = Common.nextId();
-            }
+            });
         }
     };
 
@@ -261,14 +288,19 @@ var Body = require('../body/Body');
      * @method clear
      * @param {engine} engine
      */
-    Engine.clear = function(engine) {
-        var world = engine.world;
-        
-        Pairs.clear(engine.pairs);
+    Engine.clear = (engine) => {
 
-        var broadphase = engine.broadphase;
+        // check to see if this function is ever used ...
+        console.log('Engine.clear')
+
+        let {world, broadphase, pairs} = engine;
+        
+        Pairs.clear(pairs);
+
         if (broadphase.controller) {
-            var bodies = Composite.allBodies(world);
+
+            let bodies = Composite.allBodies(world);
+
             broadphase.controller.clear(broadphase);
             broadphase.controller.update(broadphase, bodies, engine, true);
         }
@@ -280,15 +312,17 @@ var Body = require('../body/Body');
      * @private
      * @param {body[]} bodies
      */
-    Engine._bodiesClearForces = function(bodies) {
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
+    Engine._bodiesClearForces = (bodies) => {
 
-            // reset force buffers
+        // check to see if this function is ever used ...
+        // console.log('Engine._bodiesClearForces')
+
+        bodies.forEach(body => {
+
             body.force.x = 0;
             body.force.y = 0;
             body.torque = 0;
-        }
+        });
     };
 
     /**
@@ -298,23 +332,27 @@ var Body = require('../body/Body');
      * @param {body[]} bodies
      * @param {vector} gravity
      */
-    Engine._bodiesApplyGravity = function(bodies, gravity) {
-        var gravityScale = typeof gravity.scale !== 'undefined' ? gravity.scale : 0.001;
+    Engine._bodiesApplyGravity = (bodies, gravity) => {
 
-        if ((gravity.x === 0 && gravity.y === 0) || gravityScale === 0) {
-            return;
-        }
+        // check to see if this function is ever used ...
+        // console.log('Engine._bodiesApplyGravity')
+
+        let {x: gravityX, y: gravityY, scale} = gravity;
+
+        let gravityScale = typeof scale !== 'undefined' ? scale : 0.001;
+
+        if ((gravityX === 0 && gravityY === 0) || gravityScale === 0) return;
         
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
+        bodies.forEach(body => {
 
-            if (body.isStatic || body.isSleeping)
-                continue;
+            let {force, isStatic, isSleeping, mass} = body;
 
-            // apply gravity
-            body.force.y += body.mass * gravity.y * gravityScale;
-            body.force.x += body.mass * gravity.x * gravityScale;
-        }
+            if (!isStatic && !isSleeping) {
+
+                force.x += mass * gravityX * gravityScale;
+                force.y += mass * gravityY * gravityScale;
+            }
+        });
     };
 
     /**
@@ -329,15 +367,17 @@ var Body = require('../body/Body');
      * The Verlet correction factor (deltaTime / lastDeltaTime)
      * @param {bounds} worldBounds
      */
-    Engine._bodiesUpdate = function(bodies, deltaTime, timeScale, correction, worldBounds) {
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
+    Engine._bodiesUpdate = (bodies, deltaTime, timeScale, correction, worldBounds) => {
 
-            if (body.isStatic || body.isSleeping)
-                continue;
+        // check to see if this function is ever used ...
+        // console.log('Engine._bodiesUpdate')
 
-            Body.update(body, deltaTime, timeScale, correction);
-        }
+        bodies.forEach(body => {
+
+            let {isStatic, isSleeping} = body;
+
+            if (!isStatic && !isSleeping) Body.update(body, deltaTime, timeScale, correction);
+        });
     };
 
     /**

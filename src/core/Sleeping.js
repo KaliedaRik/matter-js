@@ -22,35 +22,42 @@ var Events = require('./Events');
      * @param {body[]} bodies
      * @param {number} timeScale
      */
-    Sleeping.update = function(bodies, timeScale) {
-        var timeFactor = timeScale * timeScale * timeScale;
+    Sleeping.update = (bodies, timeScale) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Sleeping.update')
+
+        let timeFactor = timeScale * timeScale * timeScale;
 
         // update bodies sleeping status
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i],
-                motion = body.speed * body.speed + body.angularSpeed * body.angularSpeed;
+        bodies.forEach(body => {
+
+            let {speed, angularSpeed, force, motion: bodyMotion, sleepThreshold} = body;
+            let {x, y} = force;
+
+            let motion = speed * speed + angularSpeed * angularSpeed;
 
             // wake up bodies if they have a force applied
-            if (body.force.x !== 0 || body.force.y !== 0) {
-                Sleeping.set(body, false);
-                continue;
-            }
+            if (x !== 0 || y !== 0) Sleeping.set(body, false);
+            else {
 
-            var minMotion = Math.min(body.motion, motion),
-                maxMotion = Math.max(body.motion, motion);
-        
-            // biased average motion estimation between frames
-            body.motion = Sleeping._minBias * minMotion + (1 - Sleeping._minBias) * maxMotion;
+                let {_minBias, _motionSleepThreshold} = Sleeping;
+
+                let minMotion = Math.min(bodyMotion, motion),
+                    maxMotion = Math.max(bodyMotion, motion);
             
-            if (body.sleepThreshold > 0 && body.motion < Sleeping._motionSleepThreshold * timeFactor) {
-                body.sleepCounter += 1;
-                
-                if (body.sleepCounter >= body.sleepThreshold)
-                    Sleeping.set(body, true);
-            } else if (body.sleepCounter > 0) {
-                body.sleepCounter -= 1;
+                // biased average motion estimation between frames
+                motion = body.motion = _minBias * minMotion + (1 - _minBias) * maxMotion;
+
+                if (sleepThreshold > 0 && motion < _motionSleepThreshold * timeFactor) {
+
+                    body.sleepCounter += 1;
+                    
+                    if (body.sleepCounter >= sleepThreshold) Sleeping.set(body, true);
+                } 
+                else if (body.sleepCounter > 0) body.sleepCounter -= 1;
             }
-        }
+        });
     };
 
     /**
@@ -59,34 +66,34 @@ var Events = require('./Events');
      * @param {pair[]} pairs
      * @param {number} timeScale
      */
-    Sleeping.afterCollisions = function(pairs, timeScale) {
-        var timeFactor = timeScale * timeScale * timeScale;
+    Sleeping.afterCollisions = (pairs, timeScale) => {
 
-        // wake up bodies involved in collisions
-        for (var i = 0; i < pairs.length; i++) {
-            var pair = pairs[i];
-            
-            // don't wake inactive pairs
-            if (!pair.isActive)
-                continue;
+        // check to see if this function is ever used ...
+        // console.log('Sleeping.afterCollisions')
 
-            var collision = pair.collision,
-                bodyA = collision.bodyA.parent, 
-                bodyB = collision.bodyB.parent;
-        
-            // don't wake if at least one body is static
-            if ((bodyA.isSleeping && bodyB.isSleeping) || bodyA.isStatic || bodyB.isStatic)
-                continue;
-        
-            if (bodyA.isSleeping || bodyB.isSleeping) {
-                var sleepingBody = (bodyA.isSleeping && !bodyA.isStatic) ? bodyA : bodyB,
-                    movingBody = sleepingBody === bodyA ? bodyB : bodyA;
+        let timeFactor = timeScale * timeScale * timeScale;
 
-                if (!sleepingBody.isStatic && movingBody.motion > Sleeping._motionWakeThreshold * timeFactor) {
-                    Sleeping.set(sleepingBody, false);
+        pairs.forEach(pair => {
+
+            if (pair.isActive) {
+
+                let {collision, bodyA, bodyB} = pair;
+
+                bodyA = bodyA.parent;
+                bodyB = bodyB.parent;
+
+                if (!bodyA.isStatic && !bodyB.isStatic && (!bodyA.isSleeping || bodyB.isSleeping)) {
+
+                    if (bodyA.isSleeping || bodyB.isSleeping) {
+
+                        let sleepingBody = (bodyA.isSleeping && !bodyA.isStatic) ? bodyA : bodyB,
+                            movingBody = (sleepingBody === bodyA) ? bodyB : bodyA;
+
+                        if (!sleepingBody.isStatic && movingBody.motion > Sleeping._motionWakeThreshold * timeFactor) Sleeping.set(sleepingBody, false);
+                    }
                 }
             }
-        }
+        });
     };
   
     /**
@@ -95,10 +102,12 @@ var Events = require('./Events');
      * @param {body} body
      * @param {boolean} isSleeping
      */
-    Sleeping.set = function(body, isSleeping) {
-        var wasSleeping = body.isSleeping;
+    Sleeping.set = (body, isSleeping) => {
+
+        let wasSleeping = body.isSleeping;
 
         if (isSleeping) {
+
             body.isSleeping = true;
             body.sleepCounter = body.sleepThreshold;
 
@@ -113,16 +122,17 @@ var Events = require('./Events');
             body.angularSpeed = 0;
             body.motion = 0;
 
-            if (!wasSleeping) {
-                Events.trigger(body, 'sleepStart');
-            }
-        } else {
+            // + commenting out to see if the system works without event emissions
+            // + "Sleeping" demo has tied console notifications to this event
+            if (!wasSleeping) Events.trigger(body, 'sleepStart');
+        } 
+        else {
             body.isSleeping = false;
             body.sleepCounter = 0;
 
-            if (wasSleeping) {
-                Events.trigger(body, 'sleepEnd');
-            }
+            // + commenting out to see if the system works without event emissions
+            // + "Sleeping" demo has tied console notifications to this event
+            if (wasSleeping) Events.trigger(body, 'sleepEnd');
         }
     };
 

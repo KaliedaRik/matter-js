@@ -4,6 +4,10 @@
 * @class Mouse
 */
 
+// All the Mouse code here appears to be dealing with user interaction via a browser or display.
+// + Adding "acts-of-god" functionality makes sense - people pick things up, hit things and drop them all the time in the real world - but putting UI functionality here tightly couples the render engine to the physics engine ... I want a much looser coupling between the two
+// I had to overwrite the Mouse.create function locally to get Matter working with Scrawl-canvas
+
 var Mouse = {};
 
 module.exports = Mouse;
@@ -18,8 +22,9 @@ var Common = require('../core/Common');
      * @param {HTMLElement} element
      * @return {mouse} A new mouse
      */
-    Mouse.create = function(element) {
-        var mouse = {};
+    Mouse.create = (element) => {
+
+        let mouse = {};
 
         if (!element) {
             Common.log('Mouse.create: element was undefined, defaulting to document.body', 'warn');
@@ -44,10 +49,12 @@ var Common = require('../core/Common');
         };
         
         mouse.mousemove = function(event) { 
-            var position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
+
+            let position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
                 touches = event.changedTouches;
 
             if (touches) {
+
                 mouse.button = 0;
                 event.preventDefault();
             }
@@ -60,15 +67,16 @@ var Common = require('../core/Common');
         };
         
         mouse.mousedown = function(event) {
-            var position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
+
+            let position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
                 touches = event.changedTouches;
 
             if (touches) {
+
                 mouse.button = 0;
                 event.preventDefault();
-            } else {
-                mouse.button = event.button;
-            }
+            } 
+            else mouse.button = event.button;
 
             mouse.absolute.x = position.x;
             mouse.absolute.y = position.y;
@@ -80,7 +88,8 @@ var Common = require('../core/Common');
         };
         
         mouse.mouseup = function(event) {
-            var position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
+
+            let position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
                 touches = event.changedTouches;
 
             if (touches) {
@@ -98,6 +107,7 @@ var Common = require('../core/Common');
         };
 
         mouse.mousewheel = function(event) {
+
             mouse.wheelDelta = Math.max(-1, Math.min(1, event.wheelDelta || -event.detail));
             event.preventDefault();
         };
@@ -113,7 +123,8 @@ var Common = require('../core/Common');
      * @param {mouse} mouse
      * @param {HTMLElement} element
      */
-    Mouse.setElement = function(mouse, element) {
+    Mouse.setElement = (mouse, element) => {
+
         mouse.element = element;
 
         element.addEventListener('mousemove', mouse.mousemove);
@@ -133,7 +144,8 @@ var Common = require('../core/Common');
      * @method clearSourceEvents
      * @param {mouse} mouse
      */
-    Mouse.clearSourceEvents = function(mouse) {
+    Mouse.clearSourceEvents = (mouse) => {
+
         mouse.sourceEvents.mousemove = null;
         mouse.sourceEvents.mousedown = null;
         mouse.sourceEvents.mouseup = null;
@@ -147,7 +159,8 @@ var Common = require('../core/Common');
      * @param {mouse} mouse
      * @param {vector} offset
      */
-    Mouse.setOffset = function(mouse, offset) {
+    Mouse.setOffset = (mouse, offset) => {
+
         mouse.offset.x = offset.x;
         mouse.offset.y = offset.y;
         mouse.position.x = mouse.absolute.x * mouse.scale.x + mouse.offset.x;
@@ -160,7 +173,8 @@ var Common = require('../core/Common');
      * @param {mouse} mouse
      * @param {vector} scale
      */
-    Mouse.setScale = function(mouse, scale) {
+    Mouse.setScale = (mouse, scale) => {
+
         mouse.scale.x = scale.x;
         mouse.scale.y = scale.y;
         mouse.position.x = mouse.absolute.x * mouse.scale.x + mouse.offset.x;
@@ -176,8 +190,9 @@ var Common = require('../core/Common');
      * @param {number} pixelRatio
      * @return {}
      */
-    Mouse._getRelativeMousePosition = function(event, element, pixelRatio) {
-        var elementBounds = element.getBoundingClientRect(),
+    Mouse._getRelativeMousePosition = (event, element, pixelRatio) => {
+
+        let elementBounds = element.getBoundingClientRect(),
             rootNode = (document.documentElement || document.body.parentNode || document.body),
             scrollX = (window.pageXOffset !== undefined) ? window.pageXOffset : rootNode.scrollLeft,
             scrollY = (window.pageYOffset !== undefined) ? window.pageYOffset : rootNode.scrollTop,
@@ -187,7 +202,8 @@ var Common = require('../core/Common');
         if (touches) {
             x = touches[0].pageX - elementBounds.left - scrollX;
             y = touches[0].pageY - elementBounds.top - scrollY;
-        } else {
+        } 
+        else {
             x = event.pageX - elementBounds.left - scrollX;
             y = event.pageY - elementBounds.top - scrollY;
         }

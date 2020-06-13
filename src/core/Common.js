@@ -469,6 +469,11 @@ module.exports = Common;
      * @return {function} A new function that calls the passed functions in order.
      */
     Common.chain = function() {
+
+        // check to see where this function is used ... 
+        // + rewrite doesn't work yet. Needs more investigating
+        console.log('Common.chain')
+
         var funcs = [];
 
         for (var i = 0; i < arguments.length; i += 1) {

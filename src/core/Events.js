@@ -6,6 +6,9 @@
 * @class Events
 */
 
+// I don't see why we need events in a physics engine
+// + sending out event notifications takes time away from computing the current state of the world
+// + unless some things in the internal workings of the world don't happen unless they get an event notification?
 var Events = {};
 
 module.exports = Events;
@@ -22,6 +25,10 @@ var Common = require('./Common');
      * @param {function} callback
      */
     Events.on = function(object, eventNames, callback) {
+
+        // check to see if this function is ever used ...
+        // console.log('Events.on')
+
         var names = eventNames.split(' '),
             name;
 
@@ -43,6 +50,10 @@ var Common = require('./Common');
      * @param {function} callback
      */
     Events.off = function(object, eventNames, callback) {
+
+        // check to see if this function is ever used ...
+        // console.log('Events.off')
+
         if (!eventNames) {
             object.events = {};
             return;
@@ -79,6 +90,10 @@ var Common = require('./Common');
      * @param {} event
      */
     Events.trigger = function(object, eventNames, event) {
+
+        // check to see if this function is ever used ...
+        // console.log('Events.trigger')
+
         var names,
             name,
             callbacks,

@@ -20,19 +20,20 @@ var Common = require('./Common');
 
 (function() {
 
-    var _requestAnimationFrame,
+    // RAF functionality is supported (in 2020) everywhere except server-side.
+    // + Leave in for now, though my aim for this rewrite is to create a client-side-only physics engine
+    let _requestAnimationFrame,
         _cancelAnimationFrame;
 
     if (typeof window !== 'undefined') {
-        _requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame
-                                      || window.mozRequestAnimationFrame || window.msRequestAnimationFrame;
+        _requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame;
    
-        _cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame 
-                                      || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+        _cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
     }
 
     if (!_requestAnimationFrame) {
-        var _frameTimeout;
+
+        let _frameTimeout;
 
         _requestAnimationFrame = function(callback){ 
             _frameTimeout = setTimeout(function() { 
@@ -50,8 +51,9 @@ var Common = require('./Common');
      * @method create
      * @param {} options
      */
-    Runner.create = function(options) {
-        var defaults = {
+    Runner.create = (options) => {
+
+        let defaults = {
             fps: 60,
             correction: 1,
             deltaSampleSize: 60,
@@ -65,7 +67,7 @@ var Common = require('./Common');
             enabled: true
         };
 
-        var runner = Common.extend(defaults, options);
+        let runner = Common.extend(defaults, options);
 
         runner.delta = runner.delta || 1000 / runner.fps;
         runner.deltaMin = runner.deltaMin || 1000 / runner.fps;
@@ -80,7 +82,8 @@ var Common = require('./Common');
      * @method run
      * @param {engine} engine
      */
-    Runner.run = function(runner, engine) {
+    Runner.run = (runner, engine) => {
+
         // create runner if engine is first argument
         if (typeof runner.positionIterations !== 'undefined') {
             engine = runner;
@@ -108,91 +111,101 @@ var Common = require('./Common');
      * @param {engine} engine
      * @param {number} time
      */
-    Runner.tick = function(runner, engine, time) {
-        var timing = engine.timing,
+    Runner.tick = (runner, engine, time) => {
+
+        let timing = engine.timing,
             correction = 1,
             delta;
 
+        let {delta: runnerDelta, isFixed: runnerIsFixed, deltaSampleSize, deltaMin, deltaMax} = runner;
+
         // create an event object
-        var event = {
-            timestamp: timing.timestamp
-        };
+        // + commenting out to see if the system works without event emissions
+        // var event = {
+        //     timestamp: timing.timestamp
+        // };
 
-        Events.trigger(runner, 'beforeTick', event);
-        Events.trigger(engine, 'beforeTick', event); // @deprecated
+        // Events.trigger(runner, 'beforeTick', event);
+        // Events.trigger(engine, 'beforeTick', event); // @deprecated
 
-        if (runner.isFixed) {
-            // fixed timestep
-            delta = runner.delta;
-        } else {
+        if (runnerIsFixed) delta = runnerDelta;
+        else {
+
             // dynamic timestep based on wall clock between calls
-            delta = (time - runner.timePrev) || runner.delta;
+            delta = (time - runner.timePrev) || runnerDelta;
             runner.timePrev = time;
 
             // optimistically filter delta over a few frames, to improve stability
             runner.deltaHistory.push(delta);
-            runner.deltaHistory = runner.deltaHistory.slice(-runner.deltaSampleSize);
+            runner.deltaHistory = runner.deltaHistory.slice(-deltaSampleSize);
             delta = Math.min.apply(null, runner.deltaHistory);
             
             // limit delta
-            delta = delta < runner.deltaMin ? runner.deltaMin : delta;
-            delta = delta > runner.deltaMax ? runner.deltaMax : delta;
+            delta = delta < deltaMin ? deltaMin : delta;
+            delta = delta > deltaMax ? deltaMax : delta;
 
             // correction for delta
-            correction = delta / runner.delta;
+            correction = delta / runnerDelta;
 
             // update engine timing object
             runner.delta = delta;
         }
 
         // time correction for time scaling
-        if (runner.timeScalePrev !== 0)
-            correction *= timing.timeScale / runner.timeScalePrev;
+        if (runner.timeScalePrev !== 0) correction *= timing.timeScale / runner.timeScalePrev;
 
-        if (timing.timeScale === 0)
-            correction = 0;
+        if (timing.timeScale === 0) correction = 0;
 
         runner.timeScalePrev = timing.timeScale;
         runner.correction = correction;
 
         // fps counter
         runner.frameCounter += 1;
+
         if (time - runner.counterTimestamp >= 1000) {
+
             runner.fps = runner.frameCounter * ((time - runner.counterTimestamp) / 1000);
             runner.counterTimestamp = time;
             runner.frameCounter = 0;
         }
 
-        Events.trigger(runner, 'tick', event);
-        Events.trigger(engine, 'tick', event); // @deprecated
+        // + commenting out to see if the system works without event emissions
+        // Events.trigger(runner, 'tick', event);
+        // Events.trigger(engine, 'tick', event); // @deprecated
 
         // if world has been modified, clear the render scene graph
-        if (engine.world.isModified 
-            && engine.render
-            && engine.render.controller
-            && engine.render.controller.clear) {
+        if (engine.world.isModified && engine.render && engine.render.controller&& engine.render.controller.clear) {
+
             engine.render.controller.clear(engine.render); // @deprecated
         }
 
         // update
-        Events.trigger(runner, 'beforeUpdate', event);
+        // + commenting out to see if the system works without event emissions
+        // Events.trigger(runner, 'beforeUpdate', event);
+
         Engine.update(engine, delta, correction);
-        Events.trigger(runner, 'afterUpdate', event);
+
+        // + commenting out to see if the system works without event emissions
+        // Events.trigger(runner, 'afterUpdate', event);
 
         // render
         // @deprecated
         if (engine.render && engine.render.controller) {
-            Events.trigger(runner, 'beforeRender', event);
-            Events.trigger(engine, 'beforeRender', event); // @deprecated
+
+            // + commenting out to see if the system works without event emissions
+            // Events.trigger(runner, 'beforeRender', event);
+            // Events.trigger(engine, 'beforeRender', event); // @deprecated
 
             engine.render.controller.world(engine.render);
 
-            Events.trigger(runner, 'afterRender', event);
-            Events.trigger(engine, 'afterRender', event); // @deprecated
+            // + commenting out to see if the system works without event emissions
+            // Events.trigger(runner, 'afterRender', event);
+            // Events.trigger(engine, 'afterRender', event); // @deprecated
         }
 
-        Events.trigger(runner, 'afterTick', event);
-        Events.trigger(engine, 'afterTick', event); // @deprecated
+        // + commenting out to see if the system works without event emissions
+        // Events.trigger(runner, 'afterTick', event);
+        // Events.trigger(engine, 'afterTick', event); // @deprecated
     };
 
     /**
@@ -201,9 +214,7 @@ var Common = require('./Common');
      * @method stop
      * @param {runner} runner
      */
-    Runner.stop = function(runner) {
-        _cancelAnimationFrame(runner.frameRequestId);
-    };
+    Runner.stop = (runner) => _cancelAnimationFrame(runner.frameRequestId);
 
     /**
      * Alias for `Runner.run`.
@@ -211,9 +222,7 @@ var Common = require('./Common');
      * @param {runner} runner
      * @param {engine} engine
      */
-    Runner.start = function(runner, engine) {
-        Runner.run(runner, engine);
-    };
+    Runner.start = (runner, engine) => Runner.run(runner, engine);
 
     /*
     *
