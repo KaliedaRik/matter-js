@@ -19,12 +19,12 @@
 // + render engine - to make the world visible in a canvas (or whatever) - keen that this should be as decoupled as possible from the other systems so that anyone can write a render engine to display their worlds in different ways to meet different purposes ... eg the inbuilt render engine is good for demoing physics principles and education, but possibly too intransigent for a game engine (or, indeed, Scrawl-canvas)
 // + reports and metrics logging system, possibly tied in with an events emitter system? Make this very optional!
 
-var Matter = {};
+const Matter = {};
 
 module.exports = Matter;
 
-var Plugin = require('./Plugin');
-var Common = require('./Common');
+const Plugin = require('./Plugin');
+const Common = require('./Common');
 
 (function() {
 

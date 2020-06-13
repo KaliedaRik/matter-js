@@ -7,11 +7,11 @@
 // Not touching this code beyond console.log lines to see if the system is being used ibn any of the demos
 // + matter-wrap plugin is used in all the demo code
 // + matter-attractors is also written/maintained by the Matter-js author
-var Plugin = {};
+const Plugin = {};
 
 module.exports = Plugin;
 
-var Common = require('./Common');
+const Common = require('./Common');
 
 (function() {
 

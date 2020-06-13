@@ -4,12 +4,12 @@
 *
 */
 
-var Metrics = {};
+const Metrics = {};
 
 module.exports = Metrics;
 
-var Composite = require('../body/Composite');
-var Common = require('./Common');
+const Composite = require('../body/Composite');
+const Common = require('./Common');
 
 (function() {
 

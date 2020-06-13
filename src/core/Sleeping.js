@@ -4,11 +4,11 @@
 * @class Sleeping
 */
 
-var Sleeping = {};
+const Sleeping = {};
 
 module.exports = Sleeping;
 
-var Events = require('./Events');
+const Events = require('./Events');
 
 (function() {
 

@@ -10,13 +10,13 @@
 * @class Runner
 */
 
-var Runner = {};
+const Runner = {};
 
 module.exports = Runner;
 
-var Events = require('./Events');
-var Engine = require('./Engine');
-var Common = require('./Common');
+const Events = require('./Events');
+const Engine = require('./Engine');
+const Common = require('./Common');
 
 (function() {
 

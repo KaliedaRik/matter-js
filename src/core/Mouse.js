@@ -8,11 +8,11 @@
 // + Adding "acts-of-god" functionality makes sense - people pick things up, hit things and drop them all the time in the real world - but putting UI functionality here tightly couples the render engine to the physics engine ... I want a much looser coupling between the two
 // I had to overwrite the Mouse.create function locally to get Matter working with Scrawl-canvas
 
-var Mouse = {};
+const Mouse = {};
 
 module.exports = Mouse;
 
-var Common = require('../core/Common');
+const Common = require('../core/Common');
 
 (function() {
 

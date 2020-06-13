@@ -9,11 +9,11 @@
 // I don't see why we need events in a physics engine
 // + sending out event notifications takes time away from computing the current state of the world
 // + unless some things in the internal workings of the world don't happen unless they get an event notification?
-var Events = {};
+const Events = {};
 
 module.exports = Events;
 
-var Common = require('./Common');
+const Common = require('./Common');
 
 (function() {
 

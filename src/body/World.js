@@ -11,13 +11,13 @@
 * @extends Composite
 */
 
-var World = {};
+const World = {};
 
 module.exports = World;
 
-var Composite = require('./Composite');
-var Constraint = require('../constraint/Constraint');
-var Common = require('../core/Common');
+const Composite = require('./Composite');
+const Constraint = require('../constraint/Constraint');
+const Common = require('../core/Common');
 
 (function() {
 

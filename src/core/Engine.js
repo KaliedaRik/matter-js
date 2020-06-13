@@ -8,22 +8,22 @@
 * @class Engine
 */
 
-var Engine = {};
+const Engine = {};
 
 module.exports = Engine;
 
-var World = require('../body/World');
-var Sleeping = require('./Sleeping');
-var Resolver = require('../collision/Resolver');
-var Render = require('../render/Render');
-var Pairs = require('../collision/Pairs');
-var Metrics = require('./Metrics');
-var Grid = require('../collision/Grid');
-var Events = require('./Events');
-var Composite = require('../body/Composite');
-var Constraint = require('../constraint/Constraint');
-var Common = require('./Common');
-var Body = require('../body/Body');
+const World = require('../body/World');
+const Sleeping = require('./Sleeping');
+const Resolver = require('../collision/Resolver');
+const Render = require('../render/Render');
+const Pairs = require('../collision/Pairs');
+const Metrics = require('./Metrics');
+const Grid = require('../collision/Grid');
+const Events = require('./Events');
+const Composite = require('../body/Composite');
+const Constraint = require('../constraint/Constraint');
+const Common = require('./Common');
+const Body = require('../body/Body');
 
 (function() {
 
@@ -249,7 +249,8 @@ var Body = require('../body/Body');
 
         // + commenting out to see if the system works without event emissions
         // + Mouse functionality works without this event
-        // Events.trigger(engine, 'afterUpdate', event);
+        // + Demo "Composite Manipulation" seems to rely on this event being fired
+        Events.trigger(engine, 'afterUpdate', event);
 
         return engine;
     };
