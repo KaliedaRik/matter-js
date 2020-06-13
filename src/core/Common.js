@@ -4,7 +4,7 @@
 * @class Common
 */
 
-var Common = {};
+const Common = {};
 
 module.exports = Common;
 
@@ -112,7 +112,7 @@ module.exports = Common;
     Common.get = (obj, path, begin, end) => {
 
         // check to see if this function is ever used ...
-        console.log('get');
+        // console.log('get');
 
         path = path.split('.').slice(begin, end);
 
@@ -134,7 +134,7 @@ module.exports = Common;
     Common.set = (obj, path, val, begin, end) => {
 
         // check to see if this function is ever used ...
-        console.log('set');
+        // console.log('set');
 
         let parts = path.split('.').slice(begin, end);
 

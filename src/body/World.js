@@ -29,10 +29,12 @@ var Common = require('../core/Common');
      * @param {} options
      * @return {world} A new world
      */
-    World.create = function(options) {
-        var composite = Composite.create();
+    World.create = (options) => {
 
-        var defaults = {
+        let composite = Composite.create();
+
+        let defaults = {
+            
             label: 'World',
             gravity: {
                 x: 0,
@@ -44,7 +46,6 @@ var Common = require('../core/Common');
                 max: { x: Infinity, y: Infinity } 
             }
         };
-        
         return Common.extend(composite, defaults, options);
     };
 

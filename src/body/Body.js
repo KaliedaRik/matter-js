@@ -12,17 +12,17 @@
 // + There's not a single use of `this` in the Body functionality
 // + No attempt to give the Body object a prototype - uses `Common.extend` instead
 // + All the code needs to be properly ES16 modular (import/export) - let bundlers worry about server-side usage (exports/require)
-var Body = {};
+const Body = {};
 
 module.exports = Body;
 
-var Vertices = require('../geometry/Vertices');
-var Vector = require('../geometry/Vector');
-var Sleeping = require('../core/Sleeping');
-var Render = require('../render/Render');
-var Common = require('../core/Common');
-var Bounds = require('../geometry/Bounds');
-var Axes = require('../geometry/Axes');
+const Vertices = require('../geometry/Vertices');
+const Vector = require('../geometry/Vector');
+const Sleeping = require('../core/Sleeping');
+const Render = require('../render/Render');
+const Common = require('../core/Common');
+const Bounds = require('../geometry/Bounds');
+const Axes = require('../geometry/Axes');
 
 (function() {
 
