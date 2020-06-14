@@ -4,7 +4,7 @@
 * @class Contact
 */
 
-var Contact = {};
+const Contact = {};
 
 module.exports = Contact;
 
@@ -16,7 +16,8 @@ module.exports = Contact;
      * @param {vertex} vertex
      * @return {contact} A new contact
      */
-    Contact.create = function(vertex) {
+    Contact.create = (vertex) => {
+
         return {
             id: Contact.id(vertex),
             vertex: vertex,
@@ -31,8 +32,6 @@ module.exports = Contact;
      * @param {vertex} vertex
      * @return {string} Unique contactID
      */
-    Contact.id = function(vertex) {
-        return vertex.body.id + '_' + vertex.index;
-    };
+    Contact.id = (vertex) => `${vertex.body.id}_${vertex.index}`;
 
 })();

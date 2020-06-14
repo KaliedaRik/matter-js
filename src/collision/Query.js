@@ -6,15 +6,15 @@
 * @class Query
 */
 
-var Query = {};
+const Query = {};
 
 module.exports = Query;
 
-var Vector = require('../geometry/Vector');
-var SAT = require('./SAT');
-var Bounds = require('../geometry/Bounds');
-var Bodies = require('../factory/Bodies');
-var Vertices = require('../geometry/Vertices');
+const Vector = require('../geometry/Vector');
+const SAT = require('./SAT');
+const Bounds = require('../geometry/Bounds');
+const Bodies = require('../factory/Bodies');
+const Vertices = require('../geometry/Vertices');
 
 (function() {
 
@@ -25,28 +25,43 @@ var Vertices = require('../geometry/Vertices');
      * @param {body[]} bodies
      * @return {object[]} Collisions
      */
-    Query.collides = function(body, bodies) {
-        var collisions = [];
+    Query.collides = (body, bodies) => {
 
-        for (var i = 0; i < bodies.length; i++) {
-            var bodyA = bodies[i];
-            
-            if (Bounds.overlaps(bodyA.bounds, body.bounds)) {
-                for (var j = bodyA.parts.length === 1 ? 0 : 1; j < bodyA.parts.length; j++) {
-                    var part = bodyA.parts[j];
+        // check to see if this function is ever used ...
+        // console.log('Query.collides')
 
-                    if (Bounds.overlaps(part.bounds, body.bounds)) {
-                        var collision = SAT.collides(part, body);
+        let collisions = [];
+
+        let overlaps = Bounds.overlaps,
+            collides = SAT.collides;
+
+        let {bounds: bodyBounds} = body;
+
+        bodies.forEach(bodyA => {
+
+            let {parts, bounds} = bodyA;
+
+            if (overlaps(bounds, bodyBounds)) {
+
+                let [firstItem, ...rest] = parts;
+                if (!rest.length) rest = [firstItem];
+
+                rest.some(part => {
+
+                    if (overlaps(part.bounds, bodyBounds)) {
+
+                        let collision = collides(part, body);
 
                         if (collision.collided) {
+
                             collisions.push(collision);
-                            break;
+                            return true;
                         }
                     }
-                }
+                    return false;
+                })
             }
-        }
-
+        });
         return collisions;
     };
 
@@ -59,20 +74,22 @@ var Vertices = require('../geometry/Vertices');
      * @param {number} [rayWidth]
      * @return {object[]} Collisions
      */
-    Query.ray = function(bodies, startPoint, endPoint, rayWidth) {
-        rayWidth = rayWidth || 1e-100;
+    Query.ray = (bodies, startPoint, endPoint, rayWidth = 1e-100) => {
 
-        var rayAngle = Vector.angle(startPoint, endPoint),
+        // check to see if this function is ever used ...
+        // console.log('Query.ray')
+
+        let rayAngle = Vector.angle(startPoint, endPoint),
             rayLength = Vector.magnitude(Vector.sub(startPoint, endPoint)),
             rayX = (endPoint.x + startPoint.x) * 0.5,
             rayY = (endPoint.y + startPoint.y) * 0.5,
             ray = Bodies.rectangle(rayX, rayY, rayLength, rayWidth, { angle: rayAngle }),
             collisions = Query.collides(ray, bodies);
 
-        for (var i = 0; i < collisions.length; i += 1) {
-            var collision = collisions[i];
-            collision.body = collision.bodyB = collision.bodyA;            
-        }
+        collisions.forEach(collision => {
+
+            collision.body = collision.bodyB = collision.bodyA;
+        });
 
         return collisions;
     };
@@ -85,15 +102,20 @@ var Vertices = require('../geometry/Vertices');
      * @param {bool} [outside=false]
      * @return {body[]} The bodies matching the query
      */
-    Query.region = function(bodies, bounds, outside) {
-        var result = [];
+    Query.region = (bodies, bounds, outside) => {
 
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i],
-                overlaps = Bounds.overlaps(body.bounds, bounds);
-            if ((overlaps && !outside) || (!overlaps && outside))
-                result.push(body);
-        }
+        // check to see if this function is ever used ...
+        console.log('Query.region')
+
+        let result = [],
+            overlapping = Bounds.overlaps;
+
+        bodies.forEach(body => {
+
+            let overlaps = overlapping(body.bounds, bounds);
+
+            if ((overlaps && !outside) || (!overlaps && outside)) result.push(body);
+        });
 
         return result;
     };
@@ -106,24 +128,33 @@ var Vertices = require('../geometry/Vertices');
      * @return {body[]} The bodies matching the query
      */
     Query.point = function(bodies, point) {
-        var result = [];
 
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
-            
-            if (Bounds.contains(body.bounds, point)) {
-                for (var j = body.parts.length === 1 ? 0 : 1; j < body.parts.length; j++) {
-                    var part = body.parts[j];
+        // check to see if this function is ever used ...
+        // console.log('Query.point')
 
-                    if (Bounds.contains(part.bounds, point)
-                        && Vertices.contains(part.vertices, point)) {
+        let result = [];
+
+        let bContains = Bounds.contains,
+            vContains = Vertices.contains;
+
+        bodies.forEach(body => {
+
+            if (bContains(body.bounds, point)) {
+
+                let [firstItem, ...parts] = body.parts;
+                if (!parts.length) parts = [firstItem];
+
+                parts.some(part => {
+
+                    if (bContains(part.bounds, point) && vContains(part.vertices, point)) {
+
                         result.push(body);
-                        break;
+                        return true;
                     }
-                }
+                    return false;
+                });
             }
-        }
-
+        });
         return result;
     };
 

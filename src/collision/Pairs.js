@@ -4,12 +4,12 @@
 * @class Pairs
 */
 
-var Pairs = {};
+const Pairs = {};
 
 module.exports = Pairs;
 
-var Pair = require('./Pair');
-var Common = require('../core/Common');
+const Pair = require('./Pair');
+const Common = require('../core/Common');
 
 (function() {
     
@@ -21,7 +21,8 @@ var Common = require('../core/Common');
      * @param {object} options
      * @return {pairs} A new pairs structure
      */
-    Pairs.create = function(options) {
+    Pairs.create = (options) => {
+
         return Common.extend({ 
             table: {},
             list: [],
@@ -38,67 +39,59 @@ var Common = require('../core/Common');
      * @param {collision[]} collisions
      * @param {number} timestamp
      */
-    Pairs.update = function(pairs, collisions, timestamp) {
-        var pairsList = pairs.list,
-            pairsTable = pairs.table,
-            collisionStart = pairs.collisionStart,
-            collisionEnd = pairs.collisionEnd,
-            collisionActive = pairs.collisionActive,
-            collision,
-            pairId,
-            pair,
-            i;
+    Pairs.update = (pairs, collisions, timestamp) => {
+
+        let {list, table, collisionStart, collisionEnd, collisionActive} = pairs;
+        let {id: getPairId, update: pairUpdate, create: pairCreate, setActive: pairSetActive} = Pair;
 
         // clear collision state arrays, but maintain old reference
         collisionStart.length = 0;
         collisionEnd.length = 0;
         collisionActive.length = 0;
 
-        for (i = 0; i < pairsList.length; i++) {
-            pairsList[i].confirmedActive = false;
-        }
+        list.forEach(pair => pair.confirmedActive = false);
 
-        for (i = 0; i < collisions.length; i++) {
-            collision = collisions[i];
+        collisions.forEach(collision => {
 
             if (collision.collided) {
-                pairId = Pair.id(collision.bodyA, collision.bodyB);
 
-                pair = pairsTable[pairId];
-                
+                let pairId = getPairId(collision.bodyA, collision.bodyB),
+                    pair = table[pairId];
+
+                // pair already exists (but may or may not be active)
                 if (pair) {
-                    // pair already exists (but may or may not be active)
-                    if (pair.isActive) {
-                        // pair exists and is active
-                        collisionActive.push(pair);
-                    } else {
-                        // pair exists but was inactive, so a collision has just started again
-                        collisionStart.push(pair);
-                    }
+
+                    // pair exists and is active
+                    if (pair.isActive) collisionActive.push(pair);
+
+                    // pair exists but was inactive, so a collision has just started again
+                    else collisionStart.push(pair);
 
                     // update the pair
-                    Pair.update(pair, collision, timestamp);
+                    pairUpdate(pair, collision, timestamp);
                     pair.confirmedActive = true;
-                } else {
-                    // pair did not exist, create a new pair
-                    pair = Pair.create(collision, timestamp);
-                    pairsTable[pairId] = pair;
+                }
 
-                    // push the new pair
+                // pair did not exist, create a new pair
+                else {
+
+                    pair = pairCreate(collision, timestamp);
+                    table[pairId] = pair;
                     collisionStart.push(pair);
-                    pairsList.push(pair);
+                    list.push(pair);
                 }
             }
-        }
+        });
 
         // deactivate previously active pairs that are now inactive
-        for (i = 0; i < pairsList.length; i++) {
-            pair = pairsList[i];
+        list.forEach(pair => {
+
             if (pair.isActive && !pair.confirmedActive) {
-                Pair.setActive(pair, false, timestamp);
+
+                pairSetActive(pair, false, timestamp);
                 collisionEnd.push(pair);
             }
-        }
+        });
     };
     
     /**
@@ -107,38 +100,34 @@ var Common = require('../core/Common');
      * @param {object} pairs
      * @param {number} timestamp
      */
-    Pairs.removeOld = function(pairs, timestamp) {
-        var pairsList = pairs.list,
-            pairsTable = pairs.table,
-            indexesToRemove = [],
-            pair,
-            collision,
-            pairIndex,
-            i;
+    Pairs.removeOld = (pairs, timestamp) => {
 
-        for (i = 0; i < pairsList.length; i++) {
-            pair = pairsList[i];
-            collision = pair.collision;
-            
+        let {list, table} = pairs;
+
+        let indexesToRemove = [],
+            _pairMaxIdleLife = Pairs._pairMaxIdleLife;
+
+        list.forEach((pair, index) => {
+
+            let {bodyA, bodyB} = pair.collision;
+
             // never remove sleeping pairs
-            if (collision.bodyA.isSleeping || collision.bodyB.isSleeping) {
-                pair.timeUpdated = timestamp;
-                continue;
-            }
+            if (bodyA.isSleeping || bodyB.isSleeping) pair.timeUpdated = timestamp;
 
             // if pair is inactive for too long, mark it to be removed
-            if (timestamp - pair.timeUpdated > Pairs._pairMaxIdleLife) {
-                indexesToRemove.push(i);
-            }
-        }
+            else if (timestamp - pair.timeUpdated > _pairMaxIdleLife) indexesToRemove.push(index);
+        });
 
         // remove marked pairs
-        for (i = 0; i < indexesToRemove.length; i++) {
-            pairIndex = indexesToRemove[i] - i;
-            pair = pairsList[pairIndex];
-            delete pairsTable[pair.id];
-            pairsList.splice(pairIndex, 1);
-        }
+        indexesToRemove.forEach((pairIndex, index) => {
+
+            pairIndex -= index;
+
+            let pair = list[pairIndex];
+
+            delete table[pair.id];
+            list.splice(pairIndex, 1);
+        });
     };
 
     /**
@@ -147,12 +136,14 @@ var Common = require('../core/Common');
      * @param {pairs} pairs
      * @return {pairs} pairs
      */
-    Pairs.clear = function(pairs) {
+    Pairs.clear = (pairs) => {
+
         pairs.table = {};
         pairs.list.length = 0;
         pairs.collisionStart.length = 0;
         pairs.collisionActive.length = 0;
         pairs.collisionEnd.length = 0;
+
         return pairs;
     };
 

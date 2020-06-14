@@ -4,13 +4,13 @@
 * @class Grid
 */
 
-var Grid = {};
+const Grid = {};
 
 module.exports = Grid;
 
-var Pair = require('./Pair');
-var Detector = require('./Detector');
-var Common = require('../core/Common');
+const Pair = require('./Pair');
+const Detector = require('./Detector');
+const Common = require('../core/Common');
 
 (function() {
 
@@ -20,8 +20,12 @@ var Common = require('../core/Common');
      * @param {} options
      * @return {grid} A new grid
      */
-    Grid.create = function(options) {
-        var defaults = {
+    Grid.create = (options) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid.create')
+
+        let defaults = {
             controller: Grid,
             detector: Detector.collisions,
             buckets: {},
@@ -144,7 +148,11 @@ var Common = require('../core/Common');
      * @method clear
      * @param {grid} grid
      */
-    Grid.clear = function(grid) {
+    Grid.clear = (grid) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid.clear')
+
         grid.buckets = {};
         grid.pairs = {};
         grid.pairsList = [];
@@ -158,11 +166,18 @@ var Common = require('../core/Common');
      * @param {} regionB
      * @return {} region
      */
-    Grid._regionUnion = function(regionA, regionB) {
-        var startCol = Math.min(regionA.startCol, regionB.startCol),
-            endCol = Math.max(regionA.endCol, regionB.endCol),
-            startRow = Math.min(regionA.startRow, regionB.startRow),
-            endRow = Math.max(regionA.endRow, regionB.endRow);
+    Grid._regionUnion = (regionA, regionB) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid._regionUnion')
+
+        let min = Math.min,
+            max = Math.max;
+
+        let startCol = min(regionA.startCol, regionB.startCol),
+            endCol = max(regionA.endCol, regionB.endCol),
+            startRow = min(regionA.startRow, regionB.startRow),
+            endRow = max(regionA.endRow, regionB.endRow);
 
         return Grid._createRegion(startCol, endCol, startRow, endRow);
     };
@@ -175,12 +190,20 @@ var Common = require('../core/Common');
      * @param {} body
      * @return {} region
      */
-    Grid._getRegion = function(grid, body) {
-        var bounds = body.bounds,
-            startCol = Math.floor(bounds.min.x / grid.bucketWidth),
-            endCol = Math.floor(bounds.max.x / grid.bucketWidth),
-            startRow = Math.floor(bounds.min.y / grid.bucketHeight),
-            endRow = Math.floor(bounds.max.y / grid.bucketHeight);
+    Grid._getRegion = (grid, body) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid._getRegion')
+
+        let {bucketWidth, bucketHeight} = grid;
+        let {min, max} = body.bounds;
+
+        let floor = Math.floor;
+
+        let startCol = floor(min.x / bucketWidth),
+            endCol = floor(max.x / bucketWidth),
+            startRow = floor(min.y / bucketHeight),
+            endRow = floor(max.y / bucketHeight);
 
         return Grid._createRegion(startCol, endCol, startRow, endRow);
     };
@@ -195,9 +218,10 @@ var Common = require('../core/Common');
      * @param {} endRow
      * @return {} region
      */
-    Grid._createRegion = function(startCol, endCol, startRow, endRow) {
+    Grid._createRegion = (startCol, endCol, startRow, endRow) => {
+
         return { 
-            id: startCol + ',' + endCol + ',' + startRow + ',' + endRow,
+            id: `${startCol},${endCol},${startRow},${endRow}`,
             startCol: startCol, 
             endCol: endCol, 
             startRow: startRow, 
@@ -213,9 +237,7 @@ var Common = require('../core/Common');
      * @param {} row
      * @return {string} bucket id
      */
-    Grid._getBucketId = function(column, row) {
-        return 'C' + column + 'R' + row;
-    };
+    Grid._getBucketId = (column, row) => `C${column}R${row}`;
 
     /**
      * Creates a bucket.
@@ -225,8 +247,10 @@ var Common = require('../core/Common');
      * @param {} bucketId
      * @return {} bucket
      */
-    Grid._createBucket = function(buckets, bucketId) {
-        var bucket = buckets[bucketId] = [];
+    Grid._createBucket = (buckets, bucketId) => {
+
+        let bucket = buckets[bucketId] = [];
+
         return bucket;
     };
 
@@ -238,25 +262,27 @@ var Common = require('../core/Common');
      * @param {} bucket
      * @param {} body
      */
-    Grid._bucketAddBody = function(grid, bucket, body) {
+    Grid._bucketAddBody = (grid, bucket, body) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid._bucketAddBody')
+
+        let {pairs} = grid;
+
+        let getPairId = Pair.id;
+
         // add new pairs
-        for (var i = 0; i < bucket.length; i++) {
-            var bodyB = bucket[i];
+        bucket.forEach(bodyB => {
 
-            if (body.id === bodyB.id || (body.isStatic && bodyB.isStatic))
-                continue;
+            if (!(body.id === bodyB.id || (body.isStatic && bodyB.isStatic))) {
 
-            // keep track of the number of buckets the pair exists in
-            // important for Grid.update to work
-            var pairId = Pair.id(body, bodyB),
-                pair = grid.pairs[pairId];
+                let pairId = getPairId(body, bodyB),
+                    pair = pairs[pairId];
 
-            if (pair) {
-                pair[2] += 1;
-            } else {
-                grid.pairs[pairId] = [body, bodyB, 1];
+                if (pair) pair[2] += 1;
+                else pairs[pairId] = [body, bodyB, 1];
             }
-        }
+        });
 
         // add to bodies (after pairs, otherwise pairs with self)
         bucket.push(body);
@@ -270,21 +296,28 @@ var Common = require('../core/Common');
      * @param {} bucket
      * @param {} body
      */
-    Grid._bucketRemoveBody = function(grid, bucket, body) {
+    Grid._bucketRemoveBody = (grid, bucket, body) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid._bucketRemoveBody')
+
+        let {pairs} = grid;
+
+        let getPairId = Pair.id;
+
         // remove from bucket
         bucket.splice(Common.indexOf(bucket, body), 1);
 
         // update pair counts
-        for (var i = 0; i < bucket.length; i++) {
+        bucket.forEach(bodyB => {
+
             // keep track of the number of buckets the pair exists in
             // important for _createActivePairsList to work
-            var bodyB = bucket[i],
-                pairId = Pair.id(body, bodyB),
-                pair = grid.pairs[pairId];
+            let pairId = getPairId(body, bodyB),
+                pair = pairs[pairId];
 
-            if (pair)
-                pair[2] -= 1;
-        }
+            if (pair) pair[2] -= 1;
+        });
     };
 
     /**
@@ -294,27 +327,26 @@ var Common = require('../core/Common');
      * @param {} grid
      * @return [] pairs
      */
-    Grid._createActivePairsList = function(grid) {
-        var pairKeys,
-            pair,
-            pairs = [];
+    Grid._createActivePairsList = (grid) => {
+
+        // check to see if this function is ever used ...
+        // console.log('Grid._createActivePairsList')
+
+        let pairs = [];
 
         // grid.pairs is used as a hashmap
-        pairKeys = Common.keys(grid.pairs);
+        let gridPairs = grid.pairs,
+            pairKeys = Common.keys(gridPairs);
 
         // iterate over grid.pairs
-        for (var k = 0; k < pairKeys.length; k++) {
-            pair = grid.pairs[pairKeys[k]];
+        pairKeys.forEach(key => {
 
-            // if pair exists in at least one bucket
-            // it is a pair that needs further collision testing so push it
-            if (pair[2] > 0) {
-                pairs.push(pair);
-            } else {
-                delete grid.pairs[pairKeys[k]];
-            }
-        }
+            let pair = gridPairs[key];
 
+            if (pair[2] > 0) pairs.push(pair);
+            else delete gridPairs[key];
+        });
+        
         return pairs;
     };
     

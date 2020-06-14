@@ -4,14 +4,14 @@
 * @class Resolver
 */
 
-var Resolver = {};
+const Resolver = {};
 
 module.exports = Resolver;
 
-var Vertices = require('../geometry/Vertices');
-var Vector = require('../geometry/Vector');
-var Common = require('../core/Common');
-var Bounds = require('../geometry/Bounds');
+const Vertices = require('../geometry/Vertices');
+const Vector = require('../geometry/Vector');
+const Common = require('../core/Common');
+const Bounds = require('../geometry/Bounds');
 
 (function() {
 
@@ -26,22 +26,23 @@ var Bounds = require('../geometry/Bounds');
      * @method preSolvePosition
      * @param {pair[]} pairs
      */
-    Resolver.preSolvePosition = function(pairs) {
-        var i,
-            pair,
-            activeCount;
+    Resolver.preSolvePosition = (pairs) => {
 
-        // find total contacts on each body
-        for (i = 0; i < pairs.length; i++) {
-            pair = pairs[i];
-            
-            if (!pair.isActive)
-                continue;
-            
-            activeCount = pair.activeContacts.length;
-            pair.collision.parentA.totalContacts += activeCount;
-            pair.collision.parentB.totalContacts += activeCount;
-        }
+        // check to see if this function is ever used ...
+        // console.log('Resolver.preSolvePosition')
+
+        pairs.forEach(pair => {
+
+            if (pair.isActive) {
+
+                let {parentA, parentB} = pair.collision;
+
+                let activeCount = pair.activeContacts.length;
+
+                parentA.totalContacts += activeCount;
+                parentB.totalContacts += activeCount;
+            }
+        });
     };
 
     /**
@@ -50,69 +51,67 @@ var Bounds = require('../geometry/Bounds');
      * @param {pair[]} pairs
      * @param {number} timeScale
      */
-    Resolver.solvePosition = function(pairs, timeScale) {
-        var i,
-            pair,
-            collision,
-            bodyA,
-            bodyB,
-            normal,
-            bodyBtoA,
-            contactShare,
-            positionImpulse,
-            contactCount = {},
-            tempA = Vector._temp[0],
+    Resolver.solvePosition = (pairs, timeScale) => {
+
+        let tempA = Vector._temp[0],
             tempB = Vector._temp[1],
             tempC = Vector._temp[2],
-            tempD = Vector._temp[3];
+            tempD = Vector._temp[3],
 
-        // find impulses required to resolve penetration
-        for (i = 0; i < pairs.length; i++) {
-            pair = pairs[i];
-            
-            if (!pair.isActive || pair.isSensor)
-                continue;
+            _positionDampen = Resolver._positionDampen,
 
-            collision = pair.collision;
-            bodyA = collision.parentA;
-            bodyB = collision.parentB;
-            normal = collision.normal;
+            vSub = Vector.sub,
+            vAdd = Vector.add,
+            vDot = Vector.dot;
 
-            // get current separation between body edges involved in collision
-            bodyBtoA = Vector.sub(Vector.add(bodyB.positionImpulse, bodyB.position, tempA), 
-                Vector.add(bodyA.positionImpulse, 
-                    Vector.sub(bodyB.position, collision.penetration, tempB), tempC), tempD);
+        pairs.forEach(pair => {
 
-            pair.separation = Vector.dot(normal, bodyBtoA);
-        }
-        
-        for (i = 0; i < pairs.length; i++) {
-            pair = pairs[i];
+            if (!(!pair.isActive || pair.isSensor)) {
 
-            if (!pair.isActive || pair.isSensor)
-                continue;
-            
-            collision = pair.collision;
-            bodyA = collision.parentA;
-            bodyB = collision.parentB;
-            normal = collision.normal;
-            positionImpulse = (pair.separation - pair.slop) * timeScale;
+                let {collision} = pair;
+                let {parentA: bodyA, parentB: bodyB, normal, penetration} = collision;
+                let {positionImpulse: impulseA} = bodyA;
+                let {positionImpulse: impulseB, position: posB} = bodyB;
 
-            if (bodyA.isStatic || bodyB.isStatic)
-                positionImpulse *= 2;
-            
-            if (!(bodyA.isStatic || bodyA.isSleeping)) {
-                contactShare = Resolver._positionDampen / bodyA.totalContacts;
-                bodyA.positionImpulse.x += normal.x * positionImpulse * contactShare;
-                bodyA.positionImpulse.y += normal.y * positionImpulse * contactShare;
+                let bodyBtoA = vSub(vAdd(impulseB, posB, tempA), vAdd(impulseA, vSub(posB, penetration, tempB), tempC), tempD);
+
+                pair.separation = vDot(normal, bodyBtoA);
             }
+        });
 
-            if (!(bodyB.isStatic || bodyB.isSleeping)) {
-                contactShare = Resolver._positionDampen / bodyB.totalContacts;
-                bodyB.positionImpulse.x -= normal.x * positionImpulse * contactShare;
-                bodyB.positionImpulse.y -= normal.y * positionImpulse * contactShare;
+        pairs.forEach(pair => {
+
+            if (!(!pair.isActive || pair.isSensor)) {
+
+                let {collision} = pair;
+                let {parentA: bodyA, parentB: bodyB, normal} = collision;
+                let {x: nx, y: ny} = normal;
+                let {isStatic: staticA, isSleeping: sleepingA, totalContacts: contactsA, positionImpulse: impulseA} = bodyA;
+                let {isStatic: staticB, isSleeping: sleepingB, totalContacts: contactsB, positionImpulse: impulseB} = bodyB;
+
+                let myImpulse = (pair.separation - pair.slop) * timeScale;
+
+                if (staticA || staticB) myImpulse *= 2;
+
+                let contactShare;
+                
+                if (!(staticA || sleepingA)) {
+
+                    contactShare = _positionDampen / contactsA;
+
+                    impulseA.x += nx * myImpulse * contactShare;
+                    impulseA.y += ny * myImpulse * contactShare;
+                }
+
+                if (!(staticB || sleepingB)) {
+
+                    contactShare = _positionDampen / contactsB;
+
+                    impulseB.x -= nx * myImpulse * contactShare;
+                    impulseB.y -= ny * myImpulse * contactShare;
+                }
             }
-        }
+        });
     };
 
     /**
@@ -120,38 +119,51 @@ var Bounds = require('../geometry/Bounds');
      * @method postSolvePosition
      * @param {body[]} bodies
      */
-    Resolver.postSolvePosition = function(bodies) {
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
+    Resolver.postSolvePosition = (bodies) => {
 
-            // reset contact count
+        let _positionWarming = Resolver._positionWarming,
+            translate = Vertices.translate,
+            update = Bounds.update,
+            dot = Vector.dot;
+
+        bodies.forEach(body => {
+
+            let {positionImpulse: impulse, positionPrev, velocity, parts} = body;
+
             body.totalContacts = 0;
 
-            if (body.positionImpulse.x !== 0 || body.positionImpulse.y !== 0) {
+            if (impulse.x !== 0 || impulse.y !== 0) {
+
                 // update body geometry
-                for (var j = 0; j < body.parts.length; j++) {
-                    var part = body.parts[j];
-                    Vertices.translate(part.vertices, body.positionImpulse);
-                    Bounds.update(part.bounds, part.vertices, body.velocity);
-                    part.position.x += body.positionImpulse.x;
-                    part.position.y += body.positionImpulse.y;
-                }
+                parts.forEach(part => {
+
+                    let {position, bounds, vertices} = part;
+
+                    translate(vertices, impulse);
+                    update(bounds, vertices, velocity);
+
+                    position.x += impulse.x;
+                    position.y += impulse.y;
+                });
 
                 // move the body without changing velocity
-                body.positionPrev.x += body.positionImpulse.x;
-                body.positionPrev.y += body.positionImpulse.y;
+                positionPrev.x += impulse.x;
+                positionPrev.y += impulse.y;
 
-                if (Vector.dot(body.positionImpulse, body.velocity) < 0) {
+                if (dot(impulse, velocity) < 0) {
+
                     // reset cached impulse if the body has velocity along it
-                    body.positionImpulse.x = 0;
-                    body.positionImpulse.y = 0;
-                } else {
+                    impulse.x = 0;
+                    impulse.y = 0;
+                } 
+                else {
+
                     // warm the next iteration
-                    body.positionImpulse.x *= Resolver._positionWarming;
-                    body.positionImpulse.y *= Resolver._positionWarming;
+                    impulse.x *= _positionWarming;
+                    impulse.y *= _positionWarming;
                 }
             }
-        }
+        });
     };
 
     /**

@@ -664,7 +664,7 @@ const Body = require('./Body');
     Composite.bounds = (composite) => {
 
         // check to see if this function is ever used ...
-        console.log('Composite.bounds')
+        // console.log('Composite.bounds')
 
         let bodies = Composite.allBodies(composite),
             vertices = [];
