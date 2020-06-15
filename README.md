@@ -1,8 +1,10 @@
-<img alt="Matter.js" src="http://brm.io/matter-js/img/matter-js.svg" width="300">
+**NOTE - this fork is not for production use!** 
 
-*NOTE* - this fork is not for production use! I forked the repository to investigate its code base, to learn how the physics engine worked. I rewrote the code to "modern" standards as part of that learning exercise.
+I forked the repository to investigate its code base, to learn how the physics engine worked. I rewrote the code to "modern" standards as part of that learning exercise.
 
 The resulting code is slightly slower than the original (according to the tests). Thus ... USE THE ORIGINAL repository - [@liabru's Matter.js](https://github.com/liabru/matter-js) - for your experimentation, delight and prosperity!
+
+<img alt="Matter.js" src="http://brm.io/matter-js/img/matter-js.svg" width="300">
 
 > *Matter.js* is a JavaScript 2D rigid body physics engine for the web
 
